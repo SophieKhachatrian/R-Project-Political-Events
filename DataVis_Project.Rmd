@@ -1,0 +1,450 @@
+---
+title: "Analysis of Political Events in Armenia"
+author: "Elen Galoyan, Hrag Sousani, Sofi Khachatryan, Gor Yeghiazaryan"
+date: "2024-11-29"
+output:
+  pdf_document:
+    toc: yes
+    number_sections: yes
+    latex_engine: xelatex
+  word_document:
+    toc: yes
+header-includes: \usepackage{hyperref}
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+
+
+\newpage
+
+
+# Introduction
+
+Political violence is defined as hostile, aggressive or violent acts motivated by political objectives or a desire to directly or indirectly affect political change or change in governance. [UNDRR, 2015](https://www.undrr.org/understanding-disaster-risk/terminology/hips/so0006).  This analysis aims to understand the political dynamics in Armenia on various types of political events. This analysis also investigates the political interactions with neighboring nations, focusing on the period from 2018 to 2024, a timeframe marked by significant events and shifts in their political landscapes. This timeframe includes various significant events, such as the Velvet revolution, the Using a data visualization approach, this study compares statistical patterns, graphical representations, and temporal changes to examine the political events in Armenia. A unique aspect of this study is its usage of data visualization to understand complex political events, making the findings accessible to both academic and non-academic audiences. The study tries to understand the underlying logic of political events considering the timeframe, the geopolitics and so on. By presenting data in a visual format, the research shows the power of visuals in uncovering trends and correlations that might be challenging to understand in traditional text-based analyses.
+
+
+# Keywords
+
+Keywords: data visualization, political violence, temporal trends, statistical diagrams, Armenia
+
+
+# Methodology
+
+The methods of rejecting or not rejecting the hypothesis are reflected visually. The used tool is R language which is the most efficient for visualizations. The packages used for the data visualizations are: **shiny, shinydashboard, leaflet, dplyr, ggplot2, plotly, readxl, tidyr, lubridate, sf, leaflet.extras, terra** During our analysis, we were able to find the exact coordinates for Artsakh for geopolitical data to understand the events happenning in the borders of Armenia and Artsakh seperately. We have also used R shiny to make the visualizations interactive and by the help of input variables we can see how the picture is changing. 
+The first step was to get the values for Armenia in the dataset. This means that either actor1 or actor2 should be "Armenia". The columns with empty values were replaced by meaningful values. For example, in column `civilian_targeting`, we have empty values indicating no civil targeting. The values have been substituted to indicate the absence of civil targeting. The columns event_id and admin3 have been removed because they did not convey any essential information.
+
+```{r}
+# Upload libraries
+library(reshape2)
+library(shiny)
+library(shinydashboard)
+library(leaflet)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(readxl)
+library(tidyr)
+library(lubridate)
+library(sf)
+library(leaflet.extras)
+library(terra)
+```
+
+```{r}
+# Read the data
+data <- read_excel("../data/processed/armenia_data_cleaned.xlsx",
+                   col_types = c("date", "numeric", "numeric", "text", "text", "text", 
+                                 "text", "text", "text", "text", "text", "text", 
+                                 "text", "text", "numeric", "text", "text", 
+                                 "text", "text", "numeric", "numeric", "numeric", 
+                                 "text", "text", "text", "numeric", "text", "numeric"))
+
+```
+
+
+# Literature Review
+
+In today's geopolitical conditions almost every day political events happen that affect the whole world. The region of Caucasus still remains as one of the biggest conflict zones in the whole world. A lot of comparisons could be drawn between combinations of various countries but one of the most interesting comparisons is Armenia versus Azerbaijan. These countries have ongoing conflict after the collapse of Soviet union, which also has resulted in 2 Artsakh wars. Various studies and comparative analysis has been done related to military capabilities, educational prospects, job-market relates issues and so on. And another aspect are the political violations in various types. It is important to understand how the political stability has changed before and after the war. 
+
+Before doing the analysis, it has been essential to understand the differences between the military capabilities of Armenia and Azerbaijan. By using a table found in [Statista](https://www.statista.com/statistics/1416085/armenia-azerbaijan-military-comparison/), the differences to be drawn are obvious. Azerbaijan's military capabilities exceed Armenia's results in almost every category. And this has been an important aspect in this research to understand the political events happening in the border of Armenia and Azerbaijan by focusing on Artsakh.
+
+Another important indicator we have considered has been the [public satisfaction with the work of the Army leadership in Armenia as of 1st quarter 2023](https://www.statista.com/statistics/1416114/army-leadership-satisfaction-armenia/). After the loss in the war, the political situation has become more unstable. In this survey out of 1513 respondents more than 50% of them were very dissatisfied. And consequently, this means variations of viewpoints and differences between solutions of problems in different aspects. 
+
+Political violations also happen under the scenario of economic conditions. Before the research we had a look at 3 important economic measures changes in years: [GDP per capita](https://www.statista.com/statistics/440691/gross-domestic-product-gdp-per-capita-in-armenia/), [Inflation rate](https://www.statista.com/statistics/440717/inflation-rate-in-armenia/), [Unemployment rate](https://www.statista.com/statistics/811634/youth-unemployment-rate-in-armenia/). The results were surprising. In the time frame 2018-2024 both GDP and unemployment rate has demonstrated positive dynamics but the number of political violations have increased. And as for the inflation, the results are not deterministic. In 2018–2019, the inflation rate was low (around 1.5%-2.5%) during this period, indicating stability in consumer prices compared to prior years. In 2020–2021, the inflation rate began increasing, peaking at 8.66% in 2021, likely due to economic disruptions such as the COVID-19 pandemic and global supply chain challenges and political disruption related to the war. In 2022, the inflation rate dropped to 1.96%, showing signs of stabilization. And from 2023 onwards (projections): The rate is steady at 4% starting from 2025, indicating an expectation of controlled inflation in the future. 
+
+The above mentioned statistics provide insights about the underlying reasons that could result in political violations. They give some directions to understand the incentives that could affect the geopolitica in Armenia.
+
+
+# Data 
+
+The data has been taken from [ACLED](https://acleddata.com/curated-data-files/#regional), which is an event-based data project designed for disaggregated conflict analysis and crisis mapping. The data is updated weekly. The retrieval date of the data is September 27 of 2024. The website has the options to choose the regions from Africa, Middle East, Latin America and the Caribbean, Asia-Pacific, Europe & Central Asia, United States and Canada. The ACLED 2020 year review report identifies patterns, makes some comparisons, and summarises the year's politically violent incidents. The 2020 Nagorno-Karabakh conflicts are also included in the study. According to the research, several of the armed conflicts between Armenia and Azerbaijan and Azerbaijan and Artakh were devastating and resulted in significant military and civilian deaths. 
+
+The raw data included all the political events in Europe and Central Asia. The first step of data preparation has been to filter the data to have only Armenia and Azerbaijan. The raw data has columns `actor1` and `actor2`, and the condition is to have Armenia in either one of the columns. The other aspects and important columns are:
+
+- **Geographic Data**: Includes location details such as `latitude`, `longitude`, `region`, `country`. The columns `latitude` and `longitude` are to understand the precise location of the event.
+
+- **Event Details**: Captures the event type (e.g., battles), sub-event type (e.g., armed clashes), and associated actors involved. The columns of main interest are `event_type` and `sub_event_type`, which include the categories and subcategories of the political events.
+
+- **Temporal Information**: Records the exact date and year of each event, along with the time precision level. The time and date indicating columns are `event_date` and `year`, which is further used to understand the changes of political dynamics.
+
+- **Interaction and Actors**: Highlights the primary and secondary actors (e.g., Military Forces of Azerbaijan) and their interactions. 
+
+- **Impact Metrics**: Contains fields for fatalities and additional descriptive notes about each incident.
+
+- **Source Credibility**: Documents the source of information, with a scale indicating the reliability of each entry. The column `source` indicating which media has reported the event with the column `notes` taken from the source type.
+
+- **Other Attributes**: Includes ISO codes, region and country details, and a unique identifier for each event. Each row has a unique identifier column `event_id_cnty`.
+
+In the next part, there are visuals giving some general information about the dataset columns and their distributions.
+
+\newpage
+
+
+```{r}
+event_type_counts <- data %>%
+  group_by(event_type) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+ggplot(event_type_counts, aes(x = "", y = count, fill = event_type)) + 
+  geom_bar(stat = "identity", width = 1) + 
+  coord_polar(theta = "y") + 
+  theme_void() + 
+  labs(
+    title = "Distribution of Event Types",
+    fill = "Types of Events"  
+  ) + 
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")  
+  )
+
+```
+The pie chart's greatest portion corresponds to battles, suggesting that during the given time period, battles were the most common kind of political event in Armenia. The military conflicts may be reflected in this. The second-largest category, explosions/remote violence, indicates a high frequency of cases involving explosives or other types of distant violence. As is common in combat areas, these incidents may involve artillery, airstrikes, or IEDs. Although it is a smaller category, strategic development includes decisions or activities taken at a strategic level that have the potential to shape political events, such as military alliances, peace negotiations, or strategic changes. Violence against civilians highlights instances where civilians have been directly targeted or affected by violence, which is a critical aspect of understanding the humanitarian impact of the conflict. The smallest slices, riots and protests, show that these types of peaceful protests are less common than more violent political activities.   Nonetheless, they are important because they show how the general public responds to political and governmental concerns.
+
+```{r}
+event_type_trend <- data %>% 
+  group_by(year, event_type) %>% 
+  summarise(count = n(), .groups = 'drop')
+
+ggplot(event_type_trend, aes(x = year, y = count, color = event_type)) + 
+  geom_line() + 
+  geom_point() + 
+  labs(
+    title = "Event Types Trend Over Years", 
+    x = "Year", 
+    y = "Number of Events", 
+    color = "Type of Event"  
+  ) + 
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),  
+    legend.title = element_text(face = "bold"),  
+    axis.text.x = element_text(angle = 45, hjust = 1) 
+  ) 
+```
+Between 2018 and 2019, the number of battles significantly decreases, and then it stabilizes at a low level. This may indicate that there was a period of intense battle in 2018  and that a settlement or agreement would result in fewer occurrences of this kind in the years that followed. The data has small data about the Artsakh war, that is way there is no obvious peak during the 2020 war. Explosions/Remote Violence incidents also decline in 2019, although they continue to occur at a low, steady rate starting in 2020. This suggests that the use of distant violence remained a constant, if small, danger even as direct battles declined. The frequency of protests seems to have somewhat increased in 2020, which might be a reaction to events or political shifts in 2018-2019 following the Velvet Revolution in 2018. With only minor fluctuations, the trend is generally constant indicating persistent yet steady civil unrest or general dissatisfaction. Similar to protests, riots see a little increase in 2020 followed by relatively low, stable levels. Compared to other kinds of events, this pattern suggests that riots, although they sometimes happen, are not an important component of the political the situation. Strategic developments demonstrate little variance over time, suggesting that significant strategy shifts are either less common or remain constant.Violence against civilians is consistent over time, which may indicate an ongoing issue with violence against civilians that is more predictable than direct battles.
+
+```{r}
+source_counts <- data %>% 
+  group_by(source) %>% 
+  summarise(event_count = n()) %>% 
+  top_n(10, event_count) %>% 
+  arrange(desc(event_count))
+
+ggplot(source_counts, aes(x = reorder(source, -event_count), y = event_count, fill = source)) + 
+  geom_bar(stat = "identity") + 
+  labs(
+    title = "Top 10 Sources by Event Count", 
+    x = NULL, 
+    y = NULL, 
+    fill = "Source"
+  ) + 
+  scale_fill_manual(values = c("darkred", "darkgray", "darkgreen", "darkblue", "purple", "brown", "indianred", "gray40", "salmon", "steelblue")) +
+  theme_minimal() + 
+  theme(
+    axis.text.x = element_text(angle = 70, hjust = 1, size = 8),  
+    plot.title = element_text(hjust = 0.5, face = "bold", margin = margin(t = 10, b = 10), size = 14),  
+    legend.position = "none", 
+    axis.title = element_blank(),  
+    panel.grid.major = element_blank(),  
+    panel.grid.minor = element_blank()   
+  )
+```
+The two main sources of event data are the Armenian Ministry of Foreign Affairs and the Azerbaijani Ministry of Defence, indicating that official government channels are the primary source of information on political events. This implies a high degree of government monitoring or involvement with the events that have been documented, which might include official reports or remarks on incidents and strategic developments. Other sources that make up the sources include "168 Hours," "A1+," "News.am," "Azatutyun," "Aravot," "Aztag," "Hraparak," and "Caucasian Knot," which represent different media outlets and maybe independent reporting institutions.   From local on-the-ground reporting to analysis and commentary on political developments, these sources probably offer a variety of viewpoints on the events. An unbiased examination of the political situation in the region requires a balanced variety of data inputs, which is indicated by the presence of both Armenian and Azerbaijani sources (as well as international viewpoints from the Caucasus region) among the top sources. 
+
+
+```{r}
+interaction_counts <- data %>% 
+  group_by(inter1) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+
+ggplot(interaction_counts, aes(x = "", y = count, fill = inter1)) + 
+  geom_bar(stat = "identity", width = 1) + 
+  coord_polar(theta = "y") + 
+  theme_void() + 
+  labs(
+    title = "Actor Types", 
+    fill = "Actors"  
+  ) + 
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.title = element_text(face = "bold"),  
+  )
+```
+The involvement of various actors in political events in Armenia changes over time, influenced by economic and political factors. Economic conditions, such as crisis or growth affect public opinion, potentially leading to increased civil  instability. Disadvantaged communities may become more engaged in militia or political protests as a result of social injustices. Additionally, migration and urbanisation change demographic characteristics, which can impact the society and increase tensions. The pie chart provides a breakdown of the different types of actors involved in political events in Armenia. State forces comprise the greatest portion, suggesting that they have a major part in these incidents, most likely by military or police operations. A significant portion  is also made up of civilians, indicating their regular participation in or influence as victims, protesters, or viewers.   Another important component is external or other factors, which indicates the impact of non-state organisations or international players outside of Armenia.  
+
+\newpage
+
+# Hypotheses
+
+**Main hypothesis**: Political events are regionally concentrated and vary in intensity and type over time.
+
+- The frequency of political events has decreased over the years. 
+
+- Certain regions are more prone to specific types of events (e.g., armed clashes) (Artsakh example, heatmap)
+
+- The post war protests are less peaceful.
+
+-  The focus of protests in Armenia has shifted over time, with different issues and causes becoming more prominent, as reflected by the leading protestors.
+
+- Protest crowd sizes in Armenia were more evenly distributed across regions in earlier years, but over time, they have become increasingly concentrated in specific regions
+
+
+
+# Analysis of visuals
+
+In this section, we focus on transforming complex and raw datasets into polished, insightful visual representations, including bar charts, pie charts, heatmaps, maps, word clouds, and other advanced visualization techniques. These graphical formats serve as powerful tools for distilling large volumes of data into clear, accessible narratives that facilitate the understanding of trends, patterns, and relationships within the data.\
+By leveraging effective visualizations, we can test hypotheses, validate assumptions, and uncover hidden trends that might otherwise remain in raw data. These visual tools not only enhance interpretability but also provide give insights to the decision makers for the analysis of Armenia's political instability.
+
+\newpage
+
+**The frequency of political events has decreased over the years.**
+
+```{r}
+event_counts_year <- data %>% 
+  group_by(year) %>% 
+  summarise(events = n())
+
+ggplot(event_counts_year, aes(x = year, y = events)) + 
+  geom_line(color = "darkred") + 
+  geom_point() + 
+  labs(
+    title = "Political Violence Over Years", 
+    x = "Year", 
+    y = "Number of Events"
+  ) + 
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")  
+  )
+
+```
+
+Before the conflict, the Gegharquniq and Tavush areas were the centre of political events, especially battles.   Due to their location near Armenia's borders, these regions are particularly vulnerable to external conflicts. These border areas have been locations of violent fights, battles, and increased political activity due to geopolitical tensions, territorial disputes, and military engagements. This concentration of incidents was probably caused partially by these locations' proximity to sensitive border areas.
+
+However, political incidents in these areas have significantly decreased after the end of the war. It's possible that the critical need for military action in these regions decreased by the end of the battle or stabilization of the border. The focus of protests and political activity changed as the conflict moved from its military phase to local political dynamics. Protests may have centered around political complaints in Yerevan, where the central government, decision-makers, and policy influencers are located, as the war's impacts started to be felt domestically. People in Yerevan could have been reacting to the war's economic effects, political consequences, or government actions. In the past, protests frequently took place in Yerevan, particularly when the people is dissatisfied with the government or changes in policy. People may have used protests as a way to voice their dissatisfaction with the way the government handled the post-war situation, economic difficulties, or territorial loss following the conflict. 
+
+*Based on the line chart depicting the trend of political events over the years, we can accept the hypothesis that the frequency of political events has decreased over time.*
+
+\newpage
+
+**Certain regions are more prone to specific types of events.**
+
+```{r}
+armenian_regions <- c(
+  "Shirak", "Lori", "Tavush", "Aragatsotn", "Kotayk",
+  "Gegharkunik", "Yerevan", "Armavir", "Vayots Dzor",
+  "Syunik", "Ararat"
+)
+
+region_counts <- data %>%
+  filter(region %in% armenian_regions) %>%
+  group_by(region) %>%
+  summarize(total_events = n(), .groups = "drop") %>%
+  arrange(total_events)
+
+region_counts$region <- factor(region_counts$region, levels = region_counts$region)
+
+ggplot(region_counts, aes(x = region, y = total_events, fill = total_events)) +
+  geom_col() +
+  scale_fill_gradient(low = "lightgreen", high = "darkred") +
+  labs(
+    title = "Total Number of Events by Region",
+    x = "Region",
+    y = "Total Events"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  )
+
+``` 
+
+```{r}
+armenian_regions <- c(
+  "Shirak", "Lori", "Tavush", "Aragatsotn", "Kotayk",
+  "Gegharkunik", "Yerevan", "Armavir", "Vayots Dzor",
+  "Syunik", "Ararat"
+)
+
+event_counts <- data %>%
+  filter(region %in% armenian_regions) %>%
+  group_by(region, event_type) %>%
+  summarise(event_count = n(), .groups = "drop") %>%
+  mutate(region = factor(region, levels = armenian_regions))
+
+ggplot(event_counts, aes(x = region, y = event_type, fill = event_count)) +
+  geom_tile(color = "white", width = 0.9, height = 0.9) +
+  scale_fill_gradientn(
+    colors = c("lightyellow", "orange", "red", "darkred"),
+    na.value = "white"
+  ) +
+  labs(
+    title = "Event Counts by Region and Event Type",
+    x = "Region",
+    y = "Event Type",
+    fill = "Event Count"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    panel.grid = element_blank()
+  ) +
+  coord_fixed(ratio = 1)
+
+
+```
+The barchart displays the number of total events groupped by region. Tavush is the first one as it is located near the border and a lot of battles happen there. Yerevan is the second as for almost any type of political event everything is centralized in the capital. Gegharkunik salso borders Azerbaijan along Lake Sevan’s eastern shoreline. Its location makes it more prone to cross-border tensions, military clashes, or remote violence, especially during periods of heightened regional conflict. The frequency of occurrences of that kind in the area is reflected in the cell's color's intensity or darkness.  We can rapidly determine the areas where specific event kinds are concentrated since it uses a continuous colour scale. For instance, a pale yellow cell at "Kotayk" and "Violence against civilians" would indicate that relatively few such incidents took place there, while a very dark red square at the intersection of "Tavush" and "Battles" would suggest Tavush is highly related with conflicts. The heatmap's information concludes  to a non-uniform distribution of event types across areas. Actually, certain areas seem to have different characteristics; some may be centres for violent conflicts (such as "Battles" or "Explosions/Remote violence"), while others might have a higher number of "Protests" or "Riots."
+
+
+*Given the variations in event type distribution visible in the heatmap, we can accept the hypothesis that certain regions are more prone to specific types of events.*
+
+
+\newpage
+
+**The post war protests are less peaceful**
+
+```{r}
+protest_events <- data %>% 
+  filter(event_type %in% c("Protests", "Riots"))
+
+protest_categories <- tribble(
+  ~sub_event_type,                  ~category,
+  "Peaceful protest",               "Peaceful",
+  "Violent demonstration",          "Non Peaceful",
+  "Protest with intervention",      "Non Peaceful",
+  "Excessive force against protesters", "Non Peaceful",
+  "Mob violence",                   "Non Peaceful"
+)
+
+protest_events_categorized <- protest_events %>% 
+  left_join(protest_categories, by = "sub_event_type")
+
+category_counts <- protest_events_categorized %>%
+  group_by(year, category) %>%
+  tally()
+
+total_events_per_year <- protest_events %>%
+  group_by(year) %>%
+  tally() %>%
+  rename(total = n)
+
+category_counts_normalized <- category_counts %>%
+  left_join(total_events_per_year, by = "year") %>%
+  mutate(proportion = n / total)
+
+
+ggplot(category_counts_normalized, aes(x = as.factor(year), y = proportion, fill = category)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(
+    title = "Proportional Categorized Protests by Year",
+    x = "Year",
+    y = "Proportion of Events",
+    fill = "Protest Category"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  scale_fill_manual(values = c("grey", "darkred")) + 
+  geom_text(aes(label = scales::percent(proportion)), position = position_stack(vjust = 0.5), color = "white")
+
+
+```
+The raw number of protests shifts significantly from year to year, according to the analysis of protest events throughout time. This makes direct comparisons across categories (such as peaceful vs non-peaceful) equally unreliable.   This variance is mostly caused by variations in the annual total number of protests, which could affect our perception of how the frequency of non-peaceful protests has evolved over time.
+
+We normalised the data by determining the proportion of each protest group (Peaceful vs. Non-Peaceful) in relation to the overall number of protests in each year in order to overcome this problem and offer a more transparent view of the trends.   We can more accurately compare how the proportion of peaceful and non-peaceful demonstrations has changed by presenting the data in percentages, which allows us to adjust for variations in the overall number of protest events over time. While the overall number of protests has declined over time, the proportion of non-peaceful protests has grew, especially in 2024, according to a review of protest occurrences across time.  This may indicate that political protests are becoming worse, with disruptive or violent protests becoming more common in today's situation.
+
+The total number of protests, both non-peaceful and peaceful, varies over time, with a noticeable decrease in total protests between 2022 and 2024. Even though there were fewer protests overall in 2024, the proportion of non-peaceful protests increased. In 2024, the percentage of non-peaceful protests reaches its highest level.   This lends support to the idea that post-war political expression has become more non-violent. The percentage of non-peaceful protests rises as the overall number of protests falls. This might be a reaction to political shifts in the post-war environment, increased tensions, or political dissatisfaction.   
+
+*The visualization suggests that post-war protests have become less peaceful, as indicated by the rising percentage of non-peaceful protests, especially in 2024.*
+
+\newpage
+
+
+**The focus of protests in Armenia has shifted over time, with different issues and causes becoming more prominent, as reflected by the leading protestors.**
+
+The protests happen in the aftermath of various events and have differnet contexts and purposes. And logically, the actors and focus of protestors differs from time to time. The protests can be for economic, regional, political interests and not always the opinions of people coincie with each other. By looking at the evolution of leading protestors, the focus is easier to understand. Relatively different socio-political groupings are the main protest players in the 2023 graph. Categories like "National Democratic Axis," "Refugees/IDPs," and different labour, political party, or student organisations can be found to the top. According to this distribution, the protest scene in 2023 had a wide range of participants, many of whom were closely related to urgent social or political issues—such as displaced people, political alliances, or action within the labour and student sectors. This can be regarded as the consequence of the war where 120.000 thousand people from Artsakh came to Armenia. In comparison, there is a noticeable change in the 2024 graph. Even while there are still a variety of players in it the main actor is  "Armenian Apostolic Church." The vast number of events held by this religious organisation exceeds the other groups, indicating a significant increase in the church's influence or presence in the protest space. Compared to the more politically and ideologically diversified group of prominent protest players from the previous year, the Armenian Apostolic Church's presence and importance in 2024 indicate a change. In terms of the number of events, the leading actors were more closely aligned in 2023. A small number of important actors had a more even distribution even though not completely balanced, effect than any one group did. But in 2024, the church—the main actor—far outweighs everyone else. The difference implies that one group's cause, leadership, or issue received a greater proportion of public attention and produced an unusually large number of events compared to what other groups succeeded to accomplish that year.
+
+*Based on the patterns evident in the provided visualizations, we can accept the hypothesis that the primary focus of protests in Armenia has shifted over time.*
+
+
+
+
+**Protest crowd sizes in Armenia were more evenly distributed across regions in earlier years, but over time, they have become increasingly concentrated in specific regions**
+
+
+In 2018-2019 the map shows various circles in different regions in Armenia and the bubbles are of different sizes. The presence of several mid-to-large sized bubbles suggests that protests occurred in multiple areas indicating the absence of one center of political activities. The overall impression is one of geographical diversity—no single place dominates the map—even when certain bubbles may stand out slightly larger than others. The quantity of apparent bubbles starts to decline in the later years. There seem to be fewer or smaller protest events in certain areas that once created large crowds.   Meanwhile, one or two areas begin to show bigger circles on frequently.   This indicates a shift from a more evenly distributed population to one where some areas are starting to accumulate greater populations total.   There are indications of concentration on the map, and the distribution is no longer as uniform as it was. The pattern is evident in 2023 and 2024. Few locations have very significant circles dominate the visualisation, and there seem to be less regions with large bubble sizes. 
+
+*Based on the observed changes in crowd distribution over the years, we can accept the hypothesis that protest crowd sizes in Armenia were more evenly spread out in earlier years and have increasingly concentrated in fewer specific regions over time.*
+
+
+
+
+
+
+\newpage
+
+# Conclusion
+
+In conclusion, through the analysis of the data, our main hypothesis is supported. The findings confirm that political events in Armenia are regionally concentrated and vary in intensity and type over time. The visuals mostly reveal shifts in the activities before and after the Nagorno-Karabakh war. Additionaly the decrease in protest’s crowd size disitibution reflects that the regional focus of political activities is narowing down. The findings highlight how the focus, scale, and intensity of these events have evolved in response to contemporary issues. These results indicate that political dynamics in Armenia are evolving, influenced by regional factors, changing participants, and heightened political tensions.
+
+# References 
+
+- [R Shiny dashboard]()
+- [UNDRR, 2015](https://www.undrr.org/understanding-disaster-risk/terminology/hips/so0006)
+- [ACLED](https://acleddata.com/curated-data-files/#regional)
+- [Azerbaijan-Armenia Military Comparison](https://www.statista.com/statistics/1416085/armenia-azerbaijan-military-comparison/)
+- [Army Leadership Satisfaction in Armenia](https://www.statista.com/statistics/1416114/army-leadership-satisfaction-armenia/)
+- [GDP per Capita in Armenia](https://www.statista.com/statistics/440691/gross-domestic-product-gdp-per-capita-in-armenia/)
+- [Inflation Rate in Armenia](https://www.statista.com/statistics/440717/inflation-rate-in-armenia/)
+- [Youth Unemployment Rate in Armenia](https://www.statista.com/statistics/811634/youth-unemployment-rate-in-armenia/)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
